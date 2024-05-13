@@ -1,33 +1,51 @@
-
-type Job = {
+type JobType = {
   id: string;
   name: string;
   status: boolean;
 };
-
-type FunctionType = {
-  job: Job;
-  handleChangeStatus: (id: string) => any;
+type PropType = {
+  job: JobType;
+  handleDelete: (id: string) => void;
+  handleChecked: (id: string) => void;
+  handleUpdateName: (id: string) => void;
 };
 
-export default function JobItem({ job, handleChangeStatus }: FunctionType) {
-  const handleChecked = (id: string) => {
-    // truyền
-    handleChangeStatus(id);
-  };
+export default function JobItem({
+  job,
+  handleDelete,
+  handleChecked,
+  handleUpdateName,
+}: PropType) {
   return (
     <>
-      <li key={job.id}>
-        <input
-          onChange={() => handleChecked(job.id)}
-          type="checkbox"
-          id="task1"
-          checked={job.status}
-        />
-        <label htmlFor="task1">
-          {job.status ? <s>{job.name}</s> : <p>{job.name}</p>}
-        </label>
-        <button>Delete</button>
+      <li className="job-item">
+        <div className="item-left">
+          <input
+            onChange={() => handleChecked(job.id)}
+            checked={job.status}
+            className="input-checkbox"
+            type="checkbox"
+          />
+          {job.status ? (
+            <s className="job-name">{job.name}</s>
+          ) : (
+            <span className="job-name">{job.name}</span>
+          )}
+        </div>
+        <div className="item-right">
+          <button
+            onClick={() => handleUpdateName(job.id)}
+            className="btn btn-edit"
+          >
+            Sửa
+          </button>
+          <button
+            onClick={() => handleDelete(job.id)}
+            className="btn btn-delete"
+          >
+            Xóa
+          </button>
+        </div>
       </li>
     </>
   );

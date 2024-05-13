@@ -1,90 +1,227 @@
 import React, { useState } from "react";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import JobItem from "./JobItem";
-type Job = {
-    id:string,
-    name:string,
-    status:boolean,
-}
-export default function Todolist() {
-    const [jobLocal,setJobLocal] = useState<Job[]>(()=>{
-        // lấy dữ liệu trên local
-        const listJobLocal = localStorage.getItem("jobs");
-        // kiểm tra xem trên local có dữ liệu không nếu có sẽ ép kiểu từ JSON thành JS, nếu không có sẽ trả về 1 mảng rỗng
-        const listJob = listJobLocal ? JSON.parse(listJobLocal): [];
-        // trả về 1 mảng Jobs và gán làm giá trị khởi tạo cho state
-        return listJob;
+
+type JobType = {
+  id: string;
+  name: string;
+  status: boolean;
+};
+
+export default function TodoList() {
+  //#region Danh sách các State của component
+  const [inputValue, setInputValue] = useState<string>("");
+  const [showError, setShowError] = useState<boolean>(false);
+  const [listJob, setListJob] = useState<JobType[]>(() => {
+    const jobLocal = localStorage.getItem("jobs");
+
+    // Nếu có jobLocal sẽ tiến hành ép kiểu nó về dạng JS , nếu không có sẽ mặc định là một []
+    const jobs = jobLocal ? JSON.parse(jobLocal) : [];
+
+    return jobs;
+  });
+  const [typeButton, setTypeButton] = useState<string>("add");
+  const [idUpdate, setIdUpdate] = useState<string>("");
+
+  //#endregion
+
+  //#region Chứa danh sách các hàm của component
+
+  /**
+   * Hàm lấy giá trị trong ô input và validate dữ liệu đầu vào
+   * @param e Thông số chi tiết của sự kiện
+   * Auth: NVQUY (12/05/2024)
+   */
+  const handleChangeValue = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    // Cập nhật lại trị của State
+    setInputValue(e.target.value);
+
+    // Validate dữ liệu đầu vào
+    if (e.target.value) {
+      setShowError(false);
+    } else {
+      setShowError(true);
+    }
+  };
+
+  /**
+   * Hàm lưu dữ liệu lên localStorage
+   * @param key Key của dữ liệu trên local
+   * @param value Value của dữ liệu
+   *  Auth: NVQUY (12/05/2024)
+   */
+  const saveData = (key: string, value: any) => {
+    // Lưu dữ liệu lên local
+    localStorage.setItem(key, JSON.stringify(value));
+
+    // Cập nhật State để component được re-render
+    setListJob(value);
+  };
+
+  /**
+   * Hàm thêm mới công việc
+   *  Auth: NVQUY (12/05/2024)
+   */
+  const handleCreateJob = (): void => {
+    // Kiểm tr dữ liệu đầu vào
+    if (inputValue) {
+      // Bước 1: Tạo đối tượng Job
+      const job: JobType = {
+        id: uuidv4(),
+        name: inputValue,
+        status: false,
+      };
+      // Bước 2: Push dữ liệu vào mảng (mảng này lấy từ localStorage)
+      listJob.push(job);
+
+      // Bước 3: Lưu danh sách công việc lên localStorage
+      saveData("jobs", listJob);
+
+      // Bước 4: Reset giá trị trong ô input
+      setInputValue("");
+    } else {
+      setShowError(true);
+    }
+  };
+
+  /**
+   * Hàm xóa thông tin một công việc theo id
+   * @param id Id của công việc cần xóa
+   *  Auth: NVQUY (12/05/2024)
+   */
+  const handleDelete = (id: string) => {
+    // Lọc ra những công việc có id khác với id cần xóa
+    const filterJob = listJob.filter((job: JobType) => job.id !== id);
+
+    // Lưu mảng mới lên local
+    saveData("jobs", filterJob);
+  };
+
+  /**
+   * Hàm cập nhật trạng thái công việc
+   * @param id Id của công việc cần cập nhật
+   * Auth: NVQUY (12/05/2024)
+   */
+  const handleChecked = (id: string) => {
+    // Cập nhật trạng thái của công việc theo id
+    // option: dùng hàm findIndex lấy ra vị trí công việc và cập nhật nó
+    const updateJobs: JobType[] = listJob.map((job: JobType) => {
+      // Kiểm tra công việc cần update theo id
+      if (job.id === id) {
+        return { ...job, status: !job.status };
+      }
+      return job;
     });
-    // hàm lưu dữ liệu lên local
-    const saveLocalStorage = (key:string,value:any) => {
-        localStorage.setItem(key,JSON.stringify(value));
+
+    // Lưu dữ liệu mới nhất lên localStorage
+    saveData("jobs", updateJobs);
+  };
+
+  /**
+   * Hàm đếm số lượng công việc đã hoàn thành
+   * @returns Số lượng công việc đã hoàn thành
+   * Auth: NVQUY (12/05/2024)
+   */
+  const totalCountJobSuccess = () => {
+    // Lọc ra những công việc có status là true
+
+    // const filterJobSuccess = listJob.filter((job: JobType) => {
+    //   return job.status === true;
+    // });
+
+    const filterJobSuccess = listJob.filter((job: JobType) => job.status);
+
+    // Trả về độ dài của mảng trên
+    return filterJobSuccess.length;
+  };
+
+  // Tìm kiếm công việc và fill lên input
+  const handleUpdateName = (id: string) => {
+    const findJob = listJob.find((job: JobType) => job.id === id);
+    if (findJob) {
+      setTypeButton("edit");
+      setInputValue(findJob?.name);
+      setIdUpdate(id);
     }
-    const [stateFake,setStateFake] = useState<string>("");
-    // state để lưu trữ giá trị trong input
-    const [inputValue,setInputValue] = useState<string>("");
-    // state để lưu trữ trạng thái ẩn hiện lỗi
-    const [showError,setShowError] = useState<boolean>(false);
-    // lấy giá trị trong ô input
-    const handleChange = (e:React.ChangeEvent<HTMLInputElement>) => {
-        // cập nhật lại giá trị của state lưu trữ giá trị trong ô input
-        setInputValue(e.target.value);
-        // Validate dữ liệu đầu vào
-        if(!e.target.value){
-            setShowError(true);
-        }else{
-            setShowError(false);
-        }
-    }
-    // hàm thêm mới công việc
-    const handleCreateJob = () =>{
-        // kiểm tra điều kiện input đã có dữ liệu chưa
-        if(inputValue){
-            // tạo đối tượng Job
-            const job: Job = { 
-                id:uuidv4(),
-                name:inputValue,
-                status:false,
-            }
-            // đẩy dữ liệu lên localstorage
-            jobLocal.push(job)
-            // Lưu dữ liệu lên local
-            saveLocalStorage("jobs",jobLocal);
-            // reset lại giá trị trong ô input và phải cho value vào trong ô input
-            setInputValue("");
-        }
-    }
-    // hàm sử lý thay đổi trạng thái công việc
-    const handleChangeStatus = (id:string) => {
-        const findIndexJob = jobLocal.findIndex((job:Job) => job.id === id);
-        // thay đổi trạng thái của công việc
-         if(findIndexJob === -1){
-            alert("Không tìm thấy");
-         }else{
-            jobLocal[findIndexJob].status = !jobLocal[findIndexJob].status;
-            setStateFake("123");
-            // lưu lại dữ liệu lên localStorage
-            saveLocalStorage("jobs",jobLocal);
-         }
-    }   
+  };
+
+  // Cập nhật lại giá trị và thông tin công việc mới lên localStorage
+  const handleSaveUpdate = () => {
+    const updateJobs = listJob.map((job: JobType) => {
+      if (job.id === idUpdate) {
+        return { ...job, name: inputValue };
+      }
+      return job;
+    });
+
+    saveData("jobs", updateJobs);
+
+    // Cập nhật lại các State mặc định
+    setInputValue("");
+    setTypeButton("add");
+  };
+
   return (
-    <div className="todo-container">
-    <h2>ToDo List</h2>
-    <div className="input-container">
-      <input value={inputValue} onChange={handleChange} type="text" id="taskInput" placeholder="Add new task..." />
-      <button onClick={handleCreateJob} className="button">Add Task</button>
-    </div>
-    {showError == true ? <span className="error">Tên công việc không được phép để trống</span>:("")}
-    <ul id="taskList">
-        {/* render danh sách công việc ra ngoài giao diện */}
-        {jobLocal.map((job:Job)=>(
-            <div key={job.id}>
-                <JobItem job = {job} handleChangeStatus = {handleChangeStatus} />
+    <>
+      <div className="main">
+        <div className="todo-container">
+          <header>
+            <h3 className="header-title">Danh sách công việc</h3>
+            <div className="job-input">
+              <input
+                value={inputValue}
+                onChange={handleChangeValue}
+                className="input"
+                type="text"
+              />
+              {typeButton === "add" ? (
+                <>
+                  <button onClick={handleCreateJob} className="btn btn-add">
+                    Thêm
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={handleSaveUpdate} className="btn btn-add">
+                    Cập nhật
+                  </button>
+                </>
+              )}
             </div>
-        ))}
-    </ul>
-    <p>
-      Tasks completed: <span id="completedTasks">0</span>
-    </p>
-  </div>
-  )
+            {
+              // showError === true ? ( <p className="error">Tên công việc không được để trống.</p>) : (<></>)
+              // showError ? ( <p className="error">Tên công việc không được để trống.</p>) : (<></>)
+              showError && (
+                <p className="error">Tên công việc không được để trống.</p>
+              )
+            }
+          </header>
+          <ul className="list-job">
+            {listJob.map((job: JobType) => (
+              <div key={job.id}>
+                <JobItem
+                  job={job}
+                  handleDelete={handleDelete}
+                  handleChecked={handleChecked}
+                  handleUpdateName={handleUpdateName}
+                />
+              </div>
+            ))}
+          </ul>
+          <footer className="job-footer">
+            {totalCountJobSuccess() === listJob.length ? (
+              <>
+                <span>Hoàn thành công việc</span>
+              </>
+            ) : (
+              <>
+                <span>Số công việc hoàn thành</span>:
+                <b>{totalCountJobSuccess()}</b>
+              </>
+            )}
+          </footer>
+        </div>
+      </div>
+    </>
+  );
 }
